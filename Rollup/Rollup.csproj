@@ -7,7 +7,7 @@
     <RootNamespace>RollupLibrary</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageId>AO.Rollup</PackageId>
-    <Title>SQL Server Rollup Library</Title>
+    <Title>Rollup Library for SQL Server</Title>
     <Authors>Adam O'Neil</Authors>
     <Description>Create incrementally-updated data caches using SQL Server change tracking</Description>
     <Copyright>Copyright (c) 2023 Adam O'Neil</Copyright>
@@ -16,6 +16,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/adamfoneil/Rollup</RepositoryUrl>
     <PackageProjectUrl>https://github.com/adamfoneil/Rollup</PackageProjectUrl>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
