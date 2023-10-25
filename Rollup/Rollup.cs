@@ -15,7 +15,7 @@ public abstract class Rollup<T>
 	private readonly ILogger<Rollup<T>> Logger;
 
 	public Rollup(IMarkerRepository markerRepository, ILogger<Rollup<T>> logger)
-    {
+	{
 		MarkerRepository = markerRepository;
 		Logger = logger;
 	}
@@ -31,7 +31,7 @@ public abstract class Rollup<T>
 	/// <summary>
 	/// this should save your rollup data
 	/// </summary>
-	protected abstract Task StoreChangesAsync(IDbConnection connection, IEnumerable<T> changes);
+	public abstract Task StoreChangesAsync(IDbConnection connection, IEnumerable<T> changes);
 
 	public async Task UpdateAsync(IDbConnection connection)
 	{
