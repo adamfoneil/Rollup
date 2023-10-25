@@ -11,6 +11,10 @@
     <Authors>Adam O'Neil</Authors>
     <Description>Create efficient incrementally-updated data caches based on SQL Server change tracking</Description>
     <Copyright>Copyright (c) 2023 Adam O'Neil</Copyright>
+    <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/adamfoneil/Rollup</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
