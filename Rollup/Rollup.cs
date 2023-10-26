@@ -6,15 +6,15 @@ using System.Data;
 namespace RollupLibrary;
 
 /// <summary>
-/// defines an incrementally-updated table using SQL Server change tracking
+/// encapsulates a change tracking query that lets you merge incremental changes to one or more rollup tables
 /// </summary>
-/// <typeparam name="T">rollup table entity</typeparam>
-public abstract class Rollup<T>
+/// <typeparam name="TKey">key of your impacted rollup table(s)</typeparam>
+public abstract class Rollup<TKey>
 {
 	private readonly IMarkerRepository MarkerRepository;
-	private readonly ILogger<Rollup<T>> Logger;
+	private readonly ILogger<Rollup<TKey>> Logger;
 
-	public Rollup(IMarkerRepository markerRepository, ILogger<Rollup<T>> logger)
+	public Rollup(IMarkerRepository markerRepository, ILogger<Rollup<TKey>> logger)
 	{
 		MarkerRepository = markerRepository;
 		Logger = logger;
@@ -23,36 +23,35 @@ public abstract class Rollup<T>
 	protected string MarkerName { get; } = default!;
 
 	/// <summary>
-	/// this should query a CHANGETABLE(changes {tableName}) table function, accepting a @sinceVersion parameter,
-	/// and perform some kind of transform or aggregation in order to derive your T type
+	/// this should query a CHANGETABLE(changes {tableName}) table function, accepting a @sinceVersion parameter	
 	/// </summary>
-	protected abstract Task<IEnumerable<T>> QueryChangesAsync(IDbConnection connection, long sinceVersion);
+	protected abstract Task<IEnumerable<TKey>> QueryKeyChangesAsync(IDbConnection connection, long sinceVersion);
 
 	/// <summary>
-	/// this should save your rollup data
+	/// this should insert/update your rollup table(s)
 	/// </summary>
-	public abstract Task StoreChangesAsync(IDbConnection connection, IEnumerable<T> changes);
+	public abstract Task MergeAsync(IDbConnection connection, IEnumerable<TKey> keyChanges);
 
-	public async Task UpdateAsync(IDbConnection connection)
+	public async Task MergeAsync(IDbConnection connection)
 	{
 		var marker = await MarkerRepository.GetOrCreateAsync(connection, MarkerName);
 
 		var currentVersion = await connection.QuerySingleAsync<long>("SELECT CHANGE_TRACKING_CURRENT_VERSION()");
 			
-		IEnumerable<T> changes;
+		IEnumerable<TKey> keyChanges;
 
 		try
 		{
-			Logger.LogInformation("Querying changes for {rollupType}", GetType().Name);
-			changes = await QueryChangesAsync(connection, marker.Version);
+			Logger.LogInformation("Querying key changes for {rollupType}", GetType().Name);
+			keyChanges = await QueryKeyChangesAsync(connection, marker.Version);
 		}
 		catch (Exception exc)
 		{
-			Logger.LogError(exc, "Error querying changes for {rollupType}", GetType().Name);
+			Logger.LogError(exc, "Error querying key changes for {rollupType}", GetType().Name);
 			throw;
 		}
 
-		if (!changes.Any())
+		if (!keyChanges.Any())
 		{
 			Logger.LogInformation("No changes found since version {version}", marker.Version);
 			return;
@@ -60,12 +59,12 @@ public abstract class Rollup<T>
 		
 		try
 		{
-			Logger.LogInformation("Storing changes for {rollupType}", GetType().Name);
-			await StoreChangesAsync(connection, changes);
+			Logger.LogInformation("Merging changes for {rollupType}", GetType().Name);
+			await MergeAsync(connection, keyChanges);
 		}
 		catch (Exception exc)
 		{
-			Logger.LogError(exc, "Error storing changes for {rollupType}", GetType().Name);
+			Logger.LogError(exc, "Error merging changes for {rollupType}", GetType().Name);
 			throw;
 		}
 		
