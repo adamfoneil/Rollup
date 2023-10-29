@@ -12,7 +12,7 @@ public class Integration
 	[TestMethod]
 	public async Task StandardCase()
 	{
-		using var cn = InitDatabase(
+		using var cn = Util.InitDatabase(
 			"Rollup.Tests.Resources.RollupDemo.bacpac",
 			"Server=(localdb)\\mssqllocaldb;Database=RollupDemo;Integrated Security=true");
 
@@ -21,33 +21,17 @@ public class Integration
 
 	}
 
+	[TestMethod]
+	public async Task SpayWiseDemo()
+	{
+		
+	}
+
+	#region SpayWise sample assets
+	#endregion
+
 	private Task CreateSampleSalesAsync(IDbConnection cn)
 	{
 		throw new NotImplementedException();
-	}
-
-	private static IDbConnection InitDatabase(string bacpacResource, string connectionString)
-	{
-		bool triedAlready = false;
-
-		try_again:		
-
-		try
-		{
-			var cn = new SqlConnection(connectionString);
-			cn.Open();
-			return cn;
-		}
-		catch 
-		{
-			if (triedAlready) throw;
-
-			var dac = new DacServices(connectionString);
-			var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(bacpacResource);
-			using var bacpac = BacPackage.Load(stream);
-			dac.ImportBacpac(bacpac, ConnectionString.Database(connectionString));
-			triedAlready = true;
-			goto try_again;
-		}
-	}
+	}	
 }
