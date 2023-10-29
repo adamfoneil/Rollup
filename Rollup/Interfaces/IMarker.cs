@@ -2,7 +2,7 @@
 
 public interface IMarker
 {
-    string Name { get; set; }
-    long Version { get; set; }
-    DateTime LastSyncUtc { get; set; }
+	string Name { get; set; }
+	long Version { get; set; }
+	DateTime LastSyncUtc { get; set; }
 }

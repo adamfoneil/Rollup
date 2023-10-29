@@ -73,7 +73,7 @@ public static class DbConnectionExtensions
 		get
 		{
 			List<(Type Type, string Syntax)> coreTypes = new()
-			{				
+			{
 				(typeof(bool), "bit"),
 				(typeof(int), "int"),
 				(typeof(long), "bigint"),
@@ -93,5 +93,5 @@ public static class DbConnectionExtensions
 
 			return result;
 		}
-	}	
+	}
 }

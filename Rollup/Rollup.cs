@@ -44,7 +44,7 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 			Logger.LogError(exc, "Error executing Rollup for {rollupType}", GetType().Name);
 			throw;
 		}
-		
+
 		try
 		{
 			marker.Version = currentVersion;

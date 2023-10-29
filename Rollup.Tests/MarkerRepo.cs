@@ -19,8 +19,8 @@ internal class MarkerRepo : IMarkerRepository<Marker>
 			await connection.UpdateAsync(marker);
 		}
 	}
-	 
-	public async Task<Marker> GetOrCreateAsync(IDbConnection connection, string name) =>		
+
+	public async Task<Marker> GetOrCreateAsync(IDbConnection connection, string name) =>
 		await connection.QuerySingleOrDefaultAsync<Marker>(
 			"SELECT * FROM [dbo].[ChangeTrackingMarker] WHERE [Name]=@name", new { name }) ??
 		new Marker() { Name = name };

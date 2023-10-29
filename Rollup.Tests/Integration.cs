@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Rollup.Tests.Entities;
 using RollupLibrary.Extensions;
 using System.Data;
-using System.Text.Json;
 
 namespace Rollup.Tests;
 
@@ -16,14 +15,14 @@ public class Integration
 	{
 		using var cn = Util.InitDatabase(
 			"Rollup.Tests.Resources.RollupDemo.bacpac",
-			"Server=(localdb)\\mssqllocaldb;Database=RollupDemo;Integrated Security=true");		
+			"Server=(localdb)\\mssqllocaldb;Database=RollupDemo;Integrated Security=true");
 
 		var repo = new MarkerRepo();
 		var logger = LoggerFactory.Create(config => config.AddDebug()).CreateLogger<SampleRollup>();
 		var rollup = new SampleRollup(repo, logger);
 
 		// assume 4 rounds of random changes
-		for (int i = 0; i < 4; i++) 
+		for (int i = 0; i < 4; i++)
 		{
 			await CreateSampleDataAsync(cn, 100);
 			await rollup.ExecuteAsync(cn);
@@ -70,13 +69,13 @@ public class Integration
 			.Generate(count);
 
 		await cn.InsertManyAsync("dbo.DetailSalesRow", rows);
-	}	
+	}
 }
 
 internal class SampleRollup : RollupLibrary.Rollup<Marker>
 {
 	public SampleRollup(MarkerRepo repo, ILogger<RollupLibrary.Rollup<Marker>> logger) : base(repo, logger)
-	{			
+	{
 	}
 
 	protected override string MarkerName => "sales";
@@ -110,7 +109,7 @@ internal class SampleRollup : RollupLibrary.Rollup<Marker>
 					INNER JOIN [dbo].[Region] [r] ON [s].[RegionId]=[r].[Id]
 				GROUP BY
 					[r].[Name],
-					[i].[Type],					
+					[i].[Type],
 					YEAR([s].[Date])", new { sinceVersion });
 
 		protected override async Task<IEnumerable<SalesRollup>> QueryRollupRowsAsync(IDbConnection connection, IEnumerable<SalesRollupKey> keyChanges) =>
@@ -127,7 +126,7 @@ internal class SampleRollup : RollupLibrary.Rollup<Marker>
 					%json% ON [json].[Region]=[r].[Name] AND [json].[ItemType]=[i].[Type] AND [json].[Year]=YEAR([s].[Date])
 				GROUP BY
 					[r].[Name],
-					[i].[Type],					
+					[i].[Type],
 					YEAR([s].[Date])", keyChanges);
 	}
 }
