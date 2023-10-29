@@ -22,6 +22,7 @@ public class Integration
 		var logger = LoggerFactory.Create(config => config.AddDebug()).CreateLogger<SampleRollup>();
 		var rollup = new SampleRollup(repo, logger);
 
+		// assume 4 rounds of random changes
 		for (int i = 0; i < 3; i++) 
 		{
 			await CreateSampleDataAsync(cn, 100);
