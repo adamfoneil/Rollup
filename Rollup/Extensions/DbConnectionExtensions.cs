@@ -45,6 +45,26 @@ public static class DbConnectionExtensions
 		return result;
 	}
 
+	public static async Task<IEnumerable<TResult>> QueryWithArrayJoinAsync<TResult, TArray>(
+		this IDbConnection connection, string queryTemplate, IEnumerable<TArray> joinItems, int chunkSize = DefaultChunkSize,
+		IDbTransaction? transaction = null)
+	{
+		var mapping = GetSqlMapping<TArray>();
+		var columnDefs = string.Join(", ", mapping.Select(col => $"[{col.ColumnName}] {col.SqlDefinition}"));
+		var sql = queryTemplate.Replace("%json%", $"INNER JOIN OPENJSON(@json) WITH ({columnDefs}) AS [json]");
+
+		List<TResult> results = new();
+
+		foreach (var chunk in joinItems.Chunk(chunkSize))
+		{
+			var json = JsonSerializer.Serialize(chunk);
+			var data = await connection.QueryAsync<TResult>(sql, new { json }, transaction);
+			results.AddRange(data);
+		}
+
+		return results;
+	}
+
 	private static IEnumerable<(string ColumnName, string SqlDefinition)> GetSqlMapping<T>() =>
 		typeof(T).GetProperties().Where(p => SupportedTypes.ContainsKey(p.PropertyType) && !p.Name.Equals(DefaultIdProperty)).Select(p => (p.Name, SupportedTypes[p.PropertyType]));
 
