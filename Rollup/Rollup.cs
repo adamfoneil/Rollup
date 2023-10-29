@@ -28,7 +28,7 @@ public abstract class Rollup<TKey>
 	protected abstract Task<IEnumerable<TKey>> QueryKeyChangesAsync(IDbConnection connection, long sinceVersion);
 
 	/// <summary>
-	/// this should insert/update your rollup table(s)
+	/// this should insert/update (i.e. merge) your rollup table(s)
 	/// </summary>
 	public abstract Task MergeAsync(IDbConnection connection, IEnumerable<TKey> keyChanges);
 
