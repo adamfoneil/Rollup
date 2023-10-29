@@ -7,20 +7,20 @@ using System.Data;
 namespace RollupLibrary;
 
 /// <summary>
-/// encapsulates a change tracking query that lets you merge incremental changes to one or more rollup tables
+/// encapsulates logic to apply incremental changes to one or more rollup tables
 /// </summary>
-public abstract class Rollup
+public abstract class Rollup<TMarker> where TMarker : IMarker
 {
-	private readonly IMarkerRepository MarkerRepository;
-	private readonly ILogger<Rollup> Logger;
+	private readonly IMarkerRepository<TMarker> MarkerRepository;
+	private readonly ILogger<Rollup<TMarker>> Logger;
 
-	public Rollup(IMarkerRepository markerRepository, ILogger<Rollup> logger)
+	public Rollup(IMarkerRepository<TMarker> markerRepository, ILogger<Rollup<TMarker>> logger)
 	{
 		MarkerRepository = markerRepository;
 		Logger = logger;
 	}
 
-	protected string MarkerName { get; } = default!;
+	protected abstract string MarkerName { get; }
 
 	/// <summary>
 	/// call your Table.MergeAsync methods here
@@ -29,13 +29,15 @@ public abstract class Rollup
 
 	public async Task ExecuteAsync(IDbConnection connection)
 	{
+		ArgumentNullException.ThrowIfNull(MarkerName);
+
 		var marker = await MarkerRepository.GetOrCreateAsync(connection, MarkerName);
 
 		var currentVersion = await connection.QuerySingleAsync<long>("SELECT CHANGE_TRACKING_CURRENT_VERSION()");
 
 		try
 		{
-			await OnExecuteAsync(connection, currentVersion);
+			await OnExecuteAsync(connection, marker.Version);
 		}
 		catch (Exception exc)
 		{
@@ -60,7 +62,7 @@ public abstract class Rollup
 	/// represents a specific rollup table in your application. Create instances of this
 	/// in your own Rollup instances -- one for each target table
 	/// </summary>
-	protected abstract class Table<TEntity, TKey> where TKey : struct
+	protected abstract class Table<TEntity, TKey> where TKey : notnull
 	{
 		/// <summary>
 		/// this should query a CHANGETABLE(changes {tableName}) table function, accepting a @sinceVersion parameter,

@@ -2,8 +2,8 @@
 
 namespace RollupLibrary.Interfaces;
 
-public interface IMarkerRepository
+public interface IMarkerRepository<T> where T : IMarker
 {
-	Task<IMarker> GetOrCreateAsync(IDbConnection connection, string name);
-	Task SaveAsync(IDbConnection connection, IMarker marker);
+	Task<T> GetOrCreateAsync(IDbConnection connection, string name);
+	Task SaveAsync(IDbConnection connection, T marker);
 }
