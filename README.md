@@ -10,4 +10,4 @@ There are several things to unpack in this library.
 
   Low-level stuff:
   - The [Rollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs) class is the heart of this.
-  - There are also some unique [Dapper extension methods](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Extensions/DbConnectionExtensions.cs) that make it easy to work with json in SQL, taking advantage of T-SQL `OPENJSON` function, which is helpful when working with table-value parameters.
+  - There are also some unique [Dapper extension methods](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Extensions/DbConnectionExtensions.cs) that make it easy to work with json in SQL, taking advantage of the T-SQL `OPENJSON` function, which is helpful when working with table-value parameters.
