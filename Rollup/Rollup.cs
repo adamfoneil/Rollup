@@ -71,7 +71,9 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 		protected abstract Task<IEnumerable<TKey>> QueryKeyChangesAsync(IDbConnection connection, long sinceVersion);
 
 		/// <summary>
-		/// this should perform aggregation of your fact tables for a set of given modified keys
+		/// this should perform aggregation of your fact tables for a set of given modified keys.
+		/// Your implementation should use QueryWithArrayJoinAsync and a %json% token to indicate where a json array is inserted
+		/// within the query. See the integration test for example
 		/// </summary>
 		protected abstract Task<IEnumerable<TRollup>> QueryRollupRowsAsync(IDbConnection connection, IEnumerable<TKey> keyChanges);
 
