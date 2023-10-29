@@ -23,7 +23,7 @@ public class Integration
 		var rollup = new SampleRollup(repo, logger);
 
 		// assume 4 rounds of random changes
-		for (int i = 0; i < 3; i++) 
+		for (int i = 0; i < 4; i++) 
 		{
 			await CreateSampleDataAsync(cn, 100);
 			await rollup.ExecuteAsync(cn);
