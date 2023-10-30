@@ -17,7 +17,15 @@
     <RepositoryUrl>https://github.com/adamfoneil/Rollup</RepositoryUrl>
     <PackageProjectUrl>https://github.com/adamfoneil/Rollup</PackageProjectUrl>
     <Version>1.0.3</Version>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.15" />
