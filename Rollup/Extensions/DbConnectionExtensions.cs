@@ -45,6 +45,12 @@ public static class DbConnectionExtensions
 		return result;
 	}
 
+	/// <summary>
+	/// Executes a query with an inner join to an OPENJSON result set.
+	/// Use the token %json% in your query to indicate where the OPENJSON call is inserted.
+	/// The OPENJSON call is aliased as "[json]", which you use to form the rest of your join expression
+	/// </summary>
+	[Obsolete("Ended up not using this, but I'm leaving it in in case it can be re-purposed elsewhere")]
 	public static async Task<IEnumerable<TResult>> QueryWithArrayJoinAsync<TResult, TArray>(
 		this IDbConnection connection, string queryTemplate, IEnumerable<TArray> joinItems, int chunkSize = DefaultChunkSize,
 		IDbTransaction? transaction = null)
