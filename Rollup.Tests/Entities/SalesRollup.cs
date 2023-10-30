@@ -8,12 +8,12 @@ internal class SalesRollup
 	public int Year { get; set; }
 	public decimal Total { get; set; }
 
-	public static implicit operator SalesRollupKey(SalesRollup entity) => new SalesRollupKey()
+	public static implicit operator SalesRollupKey(SalesRollup entity) => new()
 	{
 		Region = entity.Region,
 		ItemType = entity.ItemType,
 		Year = entity.Year
-	} ?? throw new ArgumentNullException(nameof(entity));
+	};
 }
 
 internal record SalesRollupKey
