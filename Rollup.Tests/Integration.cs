@@ -21,6 +21,13 @@ public class Integration
 		var logger = LoggerFactory.Create(config => config.AddDebug()).CreateLogger<SampleRollup>();
 		var rollup = new SampleRollup(repo, logger);
 
+		await cn.ExecuteAsync(
+			@"DELETE [dbo].[ChangeTrackingMarker]
+			ALTER TABLE [dbo].[DetailSalesRow] DISABLE CHANGE_TRACKING;
+			DELETE [dbo].[DetailSalesRow];
+			DELETE [dbo].[SalesRollup];
+			ALTER TABLE [dbo].[DetailSalesRow] ENABLE CHANGE_TRACKING;");
+
 		// assume 4 rounds of random changes
 		for (int i = 0; i < 4; i++)
 		{

@@ -63,19 +63,12 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 	/// in your own Rollup instances -- one for each target table
 	/// </summary>
 	protected abstract class Table<TRollup, TKey> where TKey : notnull
-	{
+	{		
 		/// <summary>
 		/// this should query a CHANGETABLE(changes {tableName}) table function, accepting a @sinceVersion parameter,
-		/// and perform whatever grouping is necessary to derive TKey
+		/// and perform whatever grouping is necessary to derive TRollup
 		/// </summary>
-		protected abstract Task<IEnumerable<TKey>> QueryKeyChangesAsync(IDbConnection connection, long sinceVersion);
-
-		/// <summary>
-		/// this should perform aggregation of your fact tables for a set of given modified keys.
-		/// Your implementation should use QueryWithArrayJoinAsync and a %json% token to indicate where a json array is inserted
-		/// within the query. See the integration test for example
-		/// </summary>
-		protected abstract Task<IEnumerable<TRollup>> QueryRollupRowsAsync(IDbConnection connection, IEnumerable<TKey> keyChanges);
+		protected abstract Task<IEnumerable<TRollup>> QueryChangesAsync(IDbConnection connection, long sinceVersion);
 
 		/// <summary>
 		/// for successful merging, we need to know TEntity's key, 
@@ -90,10 +83,8 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 
 		public async Task MergeAsync(IDbConnection connection, long sinceVersion)
 		{
-			var keyChanges = await QueryKeyChangesAsync(connection, sinceVersion);
-			await connection.DeleteManyAsync(TableName, keyChanges);
-
-			var changes = await QueryRollupRowsAsync(connection, keyChanges);
+			var changes = await QueryChangesAsync(connection, sinceVersion);
+			await connection.DeleteManyAsync(TableName, changes.Select(GetKey));
 			await connection.InsertManyAsync(TableName, changes);
 		}
 	}

@@ -30,37 +30,38 @@ internal class SampleRollup : RollupLibrary.Rollup<Marker>
 		/// </summary>
 		protected override SalesRollupKey GetKey(SalesRollup entity) => entity;
 
-		protected override async Task<IEnumerable<SalesRollupKey>> QueryKeyChangesAsync(IDbConnection connection, long sinceVersion) =>
-			await connection.QueryAsync<SalesRollupKey>(
-				@"SELECT
+		protected override async Task<IEnumerable<SalesRollup>> QueryChangesAsync(IDbConnection connection, long sinceVersion) =>
+			await connection.QueryAsync<SalesRollup>(
+				@"WITH [dimensions] AS (
+					SELECT
+						[s].[RegionId],
+						[i].[Type] AS [ItemType],						
+						YEAR([s].[Date]) AS [Year]
+					FROM
+						CHANGETABLE(changes [dbo].[DetailSalesRow], 0) [c]
+						INNER JOIN [dbo].[DetailSalesRow] [s] ON [c].[Id]=[s].[Id]
+						INNER JOIN [dbo].[Item] [i] ON [s].[ItemId]=[i].[Id]
+						INNER JOIN [dbo].[Region] [r] ON [s].[RegionId]=[r].[Id]
+					GROUP BY
+						[s].[RegionId],
+						[i].[Type],
+						YEAR([s].[Date])
+				) SELECT
 					[r].[Name] AS [Region],
-					[i].[Type] AS [ItemType],
-					YEAR([s].[Date]) AS [Year]
+					[dim].[ItemType],
+					[dim].[Year],
+					SUM([Price]) AS [Total]
 				FROM
-					CHANGETABLE(changes [dbo].[DetailSalesRow], @sinceVersion) [c]
-					INNER JOIN [dbo].[DetailSalesRow] [s] ON [c].[Id]=[s].[Id]
-					INNER JOIN [dbo].[Item] [i] ON [s].[ItemId]=[i].[Id]
-					INNER JOIN [dbo].[Region] [r] ON [s].[RegionId]=[r].[Id]
+					[dbo].[DetailSalesRow] [fact]
+					INNER JOIN [dbo].[Item] [i] ON [fact].[ItemId]=[i].[Id]
+					INNER JOIN [dbo].[Region] [r] ON [fact].[RegionId]=[r].[Id]
+					INNER JOIN [dimensions] [dim] ON
+						[fact].[RegionId]=[dim].[RegionId] AND
+						[i].[Type]=[dim].[ItemType] AND
+						YEAR([fact].[Date])=[dim].[Year]
 				GROUP BY
 					[r].[Name],
-					[i].[Type],
-					YEAR([s].[Date])", new { sinceVersion });
-
-		protected override async Task<IEnumerable<SalesRollup>> QueryRollupRowsAsync(IDbConnection connection, IEnumerable<SalesRollupKey> keyChanges) =>
-			await connection.QueryWithArrayJoinAsync<SalesRollup, SalesRollupKey>(
-				@"SELECT
-					[r].[Name] AS [Region],
-					[i].[Type] AS [ItemType],
-					YEAR([s].[Date]) AS [Year],
-					SUM([s].[Price]) AS [Total]
-				FROM					
-					[dbo].[DetailSalesRow] [s]						
-					INNER JOIN [dbo].[Item] [i] ON [s].[ItemId]=[i].[Id]
-					INNER JOIN [dbo].[Region] [r] ON [s].[RegionId]=[r].[Id]
-					%json% ON [json].[Region]=[r].[Name] AND [json].[ItemType]=[i].[Type] AND [json].[Year]=YEAR([s].[Date])
-				GROUP BY
-					[r].[Name],
-					[i].[Type],
-					YEAR([s].[Date])", keyChanges);
+					[dim].[ItemType],
+					[dim].[Year]", new { sinceVersion });		
 	}
 }
