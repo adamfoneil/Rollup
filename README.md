@@ -6,7 +6,7 @@ This library acts as a wrapper around the SQL Server change tracking feature, wi
 
 There are several things to unpack in this library.
 - See the [integration test](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Integration.cs) which is based on random, hypothetical [sales data](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Entities/DetailSalesRow.cs). Specically, see the [assertion](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Integration.cs#L55) that the rollup data matches the live query results had we not used a rollup.
-- See [SampleRollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleRollup.cs) which queries the source data and executes the rollup. This class has two queries, one that queries a `CHANGETABLE` for information on rows that have changed since the last merge. The second query gets the "report facts" (sums or other aggregates) that go along with those modified rows.
+- See [SampleRollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleRollup.cs) which queries the source data and executes the rollup. The hardest part about developing a rollup is working out this query, as required by the [QueryChangesAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L71) abstract method. I have a walkthrough on this below.
 
 Low-level stuff:
 - The [Rollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs) class is the heart of this.
@@ -14,3 +14,49 @@ Low-level stuff:
 
 # What about [indexed views](https://learn.microsoft.com/en-us/sql/relational-databases/views/create-indexed-views?view=sql-server-ver16)?
 Indexed views are a built-in solution for this problem. For whatever reason, I have not had good results with indexed views -- meaning the couple times I tried to use them, they weren't very fast, and I had general trouble working with them. That's why I wanted a solution based on ordinary tables.
+
+# Rollup query walkthrough
+The core of your rollup is an implementation of the [QueryChangesAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L71) abstract method. Here's a guide on how to approach this.
+
+First, think of your rollup table as a combination of one or more **dimension** columns along with one or more **fact** columns. In my [SalesRollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Entities/SalesRollup.cs) example, the dimension columns are [Region, ItemType, and Year](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Entities/SalesRollup.cs#L6-L8). There's only one fact column [Total](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Entities/SalesRollup.cs#L12). Once you keep this distinction in mind, your query will fall into place.
+
+1. Start with a CTE that returns just your dimensions that have changed since the last merge. This should include the `CHANGETABLE` and `@sinceVersion` part. This part does not include any fact data because the `CHANGETABLE` join limits what fact rows are included. If we got the fact data here, it would include only what has changed since the last merge, which would be incomplete by design.
+
+```sql
+WITH [dimensions] AS (
+  SELECT
+    [s].[RegionId],
+    [i].[Type] AS [ItemType],						
+    YEAR([s].[Date]) AS [Year]
+  FROM
+    CHANGETABLE(changes [dbo].[DetailSalesRow], 0) [c]
+    INNER JOIN [dbo].[DetailSalesRow] [s] ON [c].[Id]=[s].[Id]
+    INNER JOIN [dbo].[Item] [i] ON [s].[ItemId]=[i].[Id]
+    INNER JOIN [dbo].[Region] [r] ON [s].[RegionId]=[r].[Id]
+  GROUP BY
+    [s].[RegionId],
+    [i].[Type],
+    YEAR([s].[Date])
+) 
+```
+2. Now query your fact table(s), joining to the CTE, and including any other joins needed. The `dimensions` CTE tells us what "buckets" of data have changed. Now we need to query the entire "bucket" of data from the fact table. Notice I join to an `Item` table because my rollup is at the `ItemType` level -- not individual items.
+
+```sql
+SELECT
+  [r].[Name] AS [Region],
+  [dim].[ItemType],
+  [dim].[Year],
+  SUM([Price]) AS [Total]
+FROM
+  [dbo].[DetailSalesRow] [fact]
+  INNER JOIN [dbo].[Item] [i] ON [fact].[ItemId]=[i].[Id]
+  INNER JOIN [dbo].[Region] [r] ON [fact].[RegionId]=[r].[Id]
+  INNER JOIN [dimensions] [dim] ON
+    [fact].[RegionId]=[dim].[RegionId] AND
+    [i].[Type]=[dim].[ItemType] AND
+    YEAR([fact].[Date])=[dim].[Year]
+GROUP BY
+  [r].[Name],
+  [dim].[ItemType],
+  [dim].[Year]
+```
