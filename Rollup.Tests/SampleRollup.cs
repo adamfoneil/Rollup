@@ -38,7 +38,7 @@ internal class SampleRollup : RollupLibrary.Rollup<Marker>
 						[i].[Type] AS [ItemType],						
 						YEAR([s].[Date]) AS [Year]
 					FROM
-						CHANGETABLE(changes [dbo].[DetailSalesRow], 0) [c]
+						CHANGETABLE(changes [dbo].[DetailSalesRow], @sinceVersion) [c]
 						INNER JOIN [dbo].[DetailSalesRow] [s] ON [c].[Id]=[s].[Id]
 						INNER JOIN [dbo].[Item] [i] ON [s].[ItemId]=[i].[Id]
 						INNER JOIN [dbo].[Region] [r] ON [s].[RegionId]=[r].[Id]
