@@ -23,21 +23,22 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 	protected abstract string MarkerName { get; }
 
 	/// <summary>
-	/// call your Table.MergeAsync methods here
+	/// call your Table.MergeAsync methods here, returns the number of rollup rows merged
 	/// </summary>
-	protected abstract Task OnExecuteAsync(IDbConnection connection, long sinceVersion);
+	protected abstract Task<int> OnExecuteAsync(IDbConnection connection, long sinceVersion);
 
-	public async Task ExecuteAsync(IDbConnection connection)
+	public async Task<int> ExecuteAsync(IDbConnection connection)
 	{
 		ArgumentNullException.ThrowIfNull(MarkerName);
 
 		var marker = await MarkerRepository.GetOrCreateAsync(connection, MarkerName);
 
 		var currentVersion = await connection.QuerySingleAsync<long>("SELECT CHANGE_TRACKING_CURRENT_VERSION()");
+		int result;
 
 		try
 		{
-			await OnExecuteAsync(connection, marker.Version);
+			result = await OnExecuteAsync(connection, marker.Version);
 		}
 		catch (Exception exc)
 		{
@@ -56,6 +57,8 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 			Logger.LogError(exc, "Error saving Rollup marker for {rollupType}", GetType().Name);
 			throw;
 		}
+
+		return result;
 	}
 
 	/// <summary>
@@ -81,11 +84,12 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 		/// </summary>
 		protected abstract string TableName { get; }
 
-		public async Task MergeAsync(IDbConnection connection, long sinceVersion)
+		public async Task<int> MergeAsync(IDbConnection connection, long sinceVersion)
 		{
 			var changes = await QueryChangesAsync(connection, sinceVersion);
 			await connection.DeleteManyAsync(TableName, changes.Select(GetKey));
 			await connection.InsertManyAsync(TableName, changes);
+			return changes.Count();
 		}
 	}
 }

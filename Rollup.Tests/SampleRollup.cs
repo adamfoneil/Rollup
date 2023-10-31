@@ -14,9 +14,9 @@ internal class SampleRollup : RollupLibrary.Rollup<Marker>
 
 	protected override string MarkerName => "sales";
 
-	protected override async Task OnExecuteAsync(IDbConnection connection, long sinceVersion)
+	protected override async Task<int> OnExecuteAsync(IDbConnection connection, long sinceVersion)
 	{
-		await new SalesTable().MergeAsync(connection, sinceVersion);
+		return await new SalesTable().MergeAsync(connection, sinceVersion);
 
 		// if there were more rollup tables, you'd call their MergeAsync methods here
 	}

@@ -32,7 +32,9 @@ public class Integration
 		for (int i = 0; i < 4; i++)
 		{
 			await CreateSampleDataAsync(cn, 100);
-			await rollup.ExecuteAsync(cn);
+			var result = await rollup.ExecuteAsync(cn);
+
+			Assert.IsTrue(result > 0);
 
 			var dynamicResults = (await cn.QueryAsync<SalesRollup>(
 				@"SELECT
