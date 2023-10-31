@@ -87,9 +87,17 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 		public async Task<int> MergeAsync(IDbConnection connection, long sinceVersion)
 		{
 			var changes = await QueryChangesAsync(connection, sinceVersion);
+			await MergeAsync(connection, changes);
+			return changes.Count();
+		}
+
+		/// <summary>
+		/// if you need to apply rollup changes manually, use this
+		/// </summary>
+		public async Task MergeAsync(IDbConnection connection, IEnumerable<TRollup> changes)
+		{
 			await connection.DeleteManyAsync(TableName, changes.Select(GetKey));
 			await connection.InsertManyAsync(TableName, changes);
-			return changes.Count();
 		}
 	}
 }
