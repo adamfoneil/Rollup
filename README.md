@@ -6,14 +6,18 @@ This library acts as a wrapper around the SQL Server change tracking feature, wi
 
 There are several things to unpack in this library.
 - See the [integration test](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Integration.cs) which is based on random, hypothetical [sales data](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Entities/DetailSalesRow.cs). Specifically, see the [assertion](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Integration.cs#L62) that the rollup data matches the live query results had we not used a rollup.
-- See [SampleRollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleRollup.cs) which queries the source data and executes the rollup. The hardest part about developing a rollup is working out this query, as required by the [QueryChangesAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L71) abstract method. I have a walkthrough on this below.
+- See [SampleRollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleRollup.cs) which queries the source data and executes the rollup. The hardest part about developing a rollup is working out this query, as required by the [QueryChangesAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L74) abstract method. I have a walkthrough on this below.
 
 Low-level stuff:
-- The [Rollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs) class is the heart of this.
+- The [Rollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs) class is the heart of this. This is what tracks the change tracking version number incremented by SQL Server. When you query the `CHANGETABLE` function, you pass a `@sinceVersion` param, and this class is responsible for tracking that parameter.
+- In addition, `Rollup` has a nested abstract class [Table](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L68) which represents a specific rollup table in your application. You create an instance of this for each rollup target. Example [SalesTable](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleRollup.cs#L24).
 - There are also some unique [Dapper extension methods](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Extensions/DbConnectionExtensions.cs) that make it easy to work with json in SQL, taking advantage of the T-SQL `OPENJSON` function, which is helpful when working with table-value parameters.
 
 # What about [indexed views](https://learn.microsoft.com/en-us/sql/relational-databases/views/create-indexed-views?view=sql-server-ver16)?
 Indexed views are a built-in solution for this problem. For whatever reason, I have not had good results with indexed views -- meaning the couple times I tried to use them, they weren't very fast, and I had general trouble working with them. That's why I wanted a solution based on ordinary tables.
+
+# Executing
+Once you've created your `Rollup` and one or more `Table` instances, your application needs to call the [Rollup.ExecuteAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L30) method at some regular interval within your configured change tracking [retention period](https://learn.microsoft.com/en-us/sql/relational-databases/track-changes/about-change-tracking-sql-server?view=sql-server-ver16#change-tracking-cleanup). (I believe the default is 3 days.) You can call this from a button click in your application, for example. Or, you can setup a cronjob to execute the rollup on a defined interval. I use [BackgroundService.Extensions](https://github.com/adamfoneil/BackgroundService.Extensions) for this.
 
 # Rollup query walkthrough
 The core of your rollup is an implementation of the [QueryChangesAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L71) abstract method. Here's a guide on how to approach this.
