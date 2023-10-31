@@ -6,7 +6,7 @@ This library acts as a wrapper around the SQL Server change tracking feature, wi
 
 There are several things to unpack in this library.
 - See the [integration test](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Integration.cs) which is based on random, hypothetical [sales data](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Entities/DetailSalesRow.cs). Specifically, see the [assertion](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Integration.cs#L62) that the rollup data matches the live query results had we not used a rollup.
-- See [SampleRollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleRollup.cs) which queries the source data and executes the rollup. The hardest part about developing a rollup is working out this query, as required by the [QueryChangesAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L71) abstract method. I have a walkthrough on this below.
+- See [SampleRollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleRollup.cs) which queries the source data and executes the rollup. The hardest part about developing a rollup is working out this query, as required by the [QueryChangesAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L74) abstract method. I have a walkthrough on this below.
 
 Low-level stuff:
 - The [Rollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs) class is the heart of this.
