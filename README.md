@@ -16,6 +16,9 @@ Low-level stuff:
 # What about [indexed views](https://learn.microsoft.com/en-us/sql/relational-databases/views/create-indexed-views?view=sql-server-ver16)?
 Indexed views are a built-in solution for this problem. For whatever reason, I have not had good results with indexed views -- meaning the couple times I tried to use them, they weren't very fast, and I had general trouble working with them. That's why I wanted a solution based on ordinary tables.
 
+# Executing
+Once you've created your `Rollup` and one or more `Table` instances, your application needs to call the [Rollup.ExecuteAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L30) method at some regular interval within your configured change tracking [retention period](https://learn.microsoft.com/en-us/sql/relational-databases/track-changes/about-change-tracking-sql-server?view=sql-server-ver16#change-tracking-cleanup). (I believe the default is 3 days.) You can call this from a button click in your application, for example. Or, you can setup a cronjob to execute the rollup on a defined interval. I use [BackgroundService.Extensions](https://github.com/adamfoneil/BackgroundService.Extensions) for this.
+
 # Rollup query walkthrough
 The core of your rollup is an implementation of the [QueryChangesAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L71) abstract method. Here's a guide on how to approach this.
 
