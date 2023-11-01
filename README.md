@@ -24,7 +24,7 @@ The core of your rollup is an implementation of the [QueryChangesAsync](https://
 
 First, think of your rollup table as a combination of one or more **dimension** columns along with one or more **fact** columns. In my [SalesRollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Entities/SalesRollup.cs) example, the dimension columns are [Region, ItemType, and Year](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Entities/SalesRollup.cs#L6-L8). There's only one fact column [Total](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Entities/SalesRollup.cs#L12). Once you keep this distinction in mind, your query will fall into place.
 
-1. Start with a CTE that returns just your dimensions that have changed since the last merge. This should include the `CHANGETABLE` and `@sinceVersion` part. This part does not include any fact data because the `CHANGETABLE` join limits what fact rows are included. If we got the fact data here, it would include only what has changed since the last merge, which would be incomplete by design.
+1. Start with a CTE that returns just your dimensions that have changed since the last merge. This should include the `CHANGETABLE` and `@sinceVersion` part. This part does not include any fact data because the `CHANGETABLE` join limits what fact rows are included. If we got the fact data here, it would include only what has changed since the last merge, which would be incomplete.
 
 ```sql
 WITH [dimensions] AS (
