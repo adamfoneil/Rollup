@@ -22,6 +22,17 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 
 	protected abstract string MarkerName { get; }
 
+	public async Task<bool> HasChangesAsync(IDbConnection connection)
+	{
+		var marker = await MarkerRepository.GetOrCreateAsync(connection, MarkerName);
+		return await HasChangesInternalAsync(connection, marker.Version);
+	}
+
+	/// <summary>
+	/// use this to call your Table.HasChangesAsync method for all your Table instances within this Rollup
+	/// </summary>	
+	protected abstract Task<bool> HasChangesInternalAsync(IDbConnection connection, long sinceVersion);
+
 	/// <summary>
 	/// call your Table.MergeAsync methods here, returns the number of rollup rows merged
 	/// </summary>
@@ -80,9 +91,19 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 		protected abstract TKey GetKey(TRollup entity);
 
 		/// <summary>
-		/// returns the name of the physical table
+		/// returns the name of the physical table into which rollup data is merged
 		/// </summary>
-		protected abstract string TableName { get; }
+		protected abstract string TargetTableName { get; }
+
+		/// <summary>
+		/// name of the table that is used with the CHANGETABLE function
+		/// </summary>
+		protected abstract string SourceTableName { get; }
+
+		public async Task<bool> HasChangesAsync(IDbConnection connection, long sinceVersion) =>
+			(await connection.QueryAsync<int>(
+				$"SELECT 1 FROM CHANGETABLE(changes {SourceTableName}, @sinceVersion) AS [c]",
+				new { sinceVersion })).Any();		
 
 		public async Task<int> MergeAsync(IDbConnection connection, long sinceVersion)
 		{
@@ -96,8 +117,8 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 		/// </summary>
 		public async Task MergeAsync(IDbConnection connection, IEnumerable<TRollup> changes)
 		{
-			await connection.DeleteManyAsync(TableName, changes.Select(GetKey));
-			await connection.InsertManyAsync(TableName, changes);
+			await connection.DeleteManyAsync(TargetTableName, changes.Select(GetKey));
+			await connection.InsertManyAsync(TargetTableName, changes);
 		}
 	}
 }

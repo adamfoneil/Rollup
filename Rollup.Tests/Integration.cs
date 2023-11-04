@@ -2,6 +2,7 @@ using Bogus;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Rollup.Tests.Entities;
+using RollupLibrary;
 using RollupLibrary.Extensions;
 using System.Data;
 
@@ -24,15 +25,22 @@ public class Integration
 		await cn.ExecuteAsync(
 			@"DELETE [dbo].[ChangeTrackingMarker]
 			ALTER TABLE [dbo].[DetailSalesRow] DISABLE CHANGE_TRACKING;
-			DELETE [dbo].[DetailSalesRow];
-			DELETE [dbo].[SalesRollup];
+			TRUNCATE TABLE [dbo].[DetailSalesRow];
+			TRUNCATE TABLE [dbo].[SalesRollup];
 			ALTER TABLE [dbo].[DetailSalesRow] ENABLE CHANGE_TRACKING;");
 
 		// assume 4 rounds of random changes
 		for (int i = 0; i < 4; i++)
 		{
 			await CreateSampleDataAsync(cn, 100);
+
+			var hasChanges = await rollup.HasChangesAsync(cn);
+			Assert.IsTrue(hasChanges);
+
 			var result = await rollup.ExecuteAsync(cn);
+
+			hasChanges = await rollup.HasChangesAsync(cn);
+			Assert.IsFalse(hasChanges);
 
 			Assert.IsTrue(result > 0);
 
@@ -51,7 +59,7 @@ public class Integration
 					[i].[Type],					
 					YEAR([s].[Date])")).ToDictionary(row => (row.Region, row.ItemType, row.Year), row => row.Total);
 
-			// the dynamic results should match the rollup data
+			// the "live" results should match the rollup data
 			var rollupResults = (await cn.QueryAsync<SalesRollup>(
 				@"SELECT
 					[Region],
@@ -62,7 +70,44 @@ public class Integration
 					[dbo].[SalesRollup] [sr]")).ToDictionary(row => (row.Region, row.ItemType, row.Year), row => row.Total);
 
 			Assert.IsTrue(dynamicResults.All(kp => rollupResults[kp.Key].Equals(kp.Value)));
+
+			var validator = new SampleValidator();
+			var comparison = await validator.CompareAsync(cn);
+			Assert.IsTrue(comparison.AreSame);
 		}
+	}
+
+	[TestMethod]
+	public async Task ValidationFailCase()
+	{
+		using var cn = Util.InitDatabase(
+			"Rollup.Tests.Resources.RollupDemo.bacpac",
+			"Server=(localdb)\\mssqllocaldb;Database=RollupDemo;Integrated Security=true");
+
+		await cn.ExecuteAsync(
+			@"DELETE [dbo].[ChangeTrackingMarker]
+			ALTER TABLE [dbo].[DetailSalesRow] DISABLE CHANGE_TRACKING;
+			TRUNCATE TABLE [dbo].[DetailSalesRow];
+			TRUNCATE TABLE [dbo].[SalesRollup];
+			ALTER TABLE [dbo].[DetailSalesRow] ENABLE CHANGE_TRACKING;");
+
+		await CreateSampleDataAsync(cn, 100);
+
+		var repo = new MarkerRepo();
+		var logger = LoggerFactory.Create(config => config.AddDebug()).CreateLogger<SampleRollup>();
+		var rollup = new SampleRollup(repo, logger);
+		var result = await rollup.ExecuteAsync(cn);
+
+		// now, create a deliberate mismatch between the source live data and the rollup
+		await cn.ExecuteAsync("UPDATE [dbo].[DetailSalesRow] SET [Price]=[Price]+10 WHERE [Id]=1");
+
+		var validator = new SampleValidator();
+		var comparison = await validator.CompareAsync(cn);
+		Assert.IsFalse(comparison.AreSame);
+		Assert.IsTrue(comparison.Mismatches.Count() == 1);
+		var livePrice = comparison.Mismatches.First().LiveFact;
+		var rollupPrice = comparison.Mismatches.First().RollupFact;
+		Assert.IsTrue(livePrice == rollupPrice + 10);
 	}
 
 	private async Task CreateSampleDataAsync(IDbConnection cn, int count)

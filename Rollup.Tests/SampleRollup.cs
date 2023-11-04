@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Logging;
 using Rollup.Tests.Entities;
 using System.Data;
-using RollupLibrary.Extensions;
 
 namespace Rollup.Tests;
 
@@ -14,6 +13,9 @@ internal class SampleRollup : RollupLibrary.Rollup<Marker>
 
 	protected override string MarkerName => "sales";
 
+	protected override async Task<bool> HasChangesInternalAsync(IDbConnection connection, long sinceVersion) =>
+		await new SalesTable().HasChangesAsync(connection, sinceVersion);	
+
 	protected override async Task<int> OnExecuteAsync(IDbConnection connection, long sinceVersion)
 	{
 		return await new SalesTable().MergeAsync(connection, sinceVersion);
@@ -23,7 +25,9 @@ internal class SampleRollup : RollupLibrary.Rollup<Marker>
 
 	private class SalesTable : Table<SalesRollup, SalesRollupKey>
 	{
-		protected override string TableName => "dbo.SalesRollup";
+		protected override string TargetTableName => "dbo.SalesRollup";
+
+		protected override string SourceTableName => "dbo.DetailSalesRow";
 
 		/// <summary>
 		/// implicit conversion operator performs the conversion
