@@ -10,7 +10,7 @@ There are several things to unpack in this library.
 
 Low-level stuff:
 - The [Rollup](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs) class is the heart of this. This is what tracks the change tracking version number incremented by SQL Server. When you query the `CHANGETABLE` function, you pass a `@sinceVersion` param, and this class is responsible for tracking that parameter.
-- In addition, `Rollup` has a nested abstract class [Table](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L68) which represents a specific rollup table in your application. You create an instance of this for each rollup target. Example [SalesTable](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleRollup.cs#L24).
+- In addition, `Rollup` has a nested abstract class [Table](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Rollup.cs#L79) which represents a specific rollup table in your application. You create an instance of this for each rollup target. Example [SalesTable](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleRollup.cs#L26).
 - There are also some unique [Dapper extension methods](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Extensions/DbConnectionExtensions.cs) that make it easy to work with json in SQL, taking advantage of the T-SQL `OPENJSON` function, which is helpful when working with table-value parameters.
 
 # What about [indexed views](https://learn.microsoft.com/en-us/sql/relational-databases/views/create-indexed-views?view=sql-server-ver16)?
