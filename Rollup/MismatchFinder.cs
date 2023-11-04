@@ -12,8 +12,8 @@ public enum MismatchType
 /// defines a way to find mismatched detail rows between two report queries,
 /// used for troubleshooting rollups
 /// </summary>
-public abstract class MismatchFinder<TResult, TIdentity> 
-	where TIdentity : struct 
+public abstract class MismatchFinder<TResult, TIdentity>
+	where TIdentity : struct
 	where TResult : notnull
 {
 	protected abstract TIdentity GetIdentity(TResult result);

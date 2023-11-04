@@ -14,7 +14,7 @@ internal class SampleRollup : RollupLibrary.Rollup<Marker>
 	protected override string MarkerName => "sales";
 
 	protected override async Task<bool> HasChangesInternalAsync(IDbConnection connection, long sinceVersion) =>
-		await new SalesTable().HasChangesAsync(connection, sinceVersion);	
+		await new SalesTable().HasChangesAsync(connection, sinceVersion);
 
 	protected override async Task<int> OnExecuteAsync(IDbConnection connection, long sinceVersion)
 	{
@@ -66,6 +66,6 @@ internal class SampleRollup : RollupLibrary.Rollup<Marker>
 				GROUP BY
 					[r].[Name],
 					[dim].[ItemType],
-					[dim].[Year]", new { sinceVersion });		
+					[dim].[Year]", new { sinceVersion });
 	}
 }

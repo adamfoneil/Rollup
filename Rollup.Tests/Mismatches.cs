@@ -29,11 +29,10 @@ internal class SampleData
 	public string Value { get; set; } = default!;
 }
 
-
 internal class SampleMismatchFinder : MismatchFinder<SampleData, int>
 {
 	protected override int GetIdentity(SampleData result) => result.Id;
-	
+
 	protected override async Task<IEnumerable<SampleData>> QueryRollupAsync(IDbConnection connection)
 	{
 		await Task.CompletedTask;
@@ -55,7 +54,7 @@ internal class SampleMismatchFinder : MismatchFinder<SampleData, int>
 		return new SampleData[]
 		{
 			new() { Id = 1, Value = "Hello" },
-			new() { Id = 2, Value = "Goodbye" },			
+			new() { Id = 2, Value = "Goodbye" },
 			new() { Id = 4, Value = "Astyanax" },
 			new() { Id = 5, Value = "Ozymandias" },
 			new() { Id = 6, Value = "Grouper" }

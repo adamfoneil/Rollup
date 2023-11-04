@@ -5,8 +5,8 @@ namespace RollupLibrary;
 /// <summary>
 /// lets you define validation for rollup data
 /// </summary>
-public abstract class TotalsValidator<TRollup, TKey, TFact> 
-	where TKey : notnull 
+public abstract class TotalsValidator<TRollup, TKey, TFact>
+	where TKey : notnull
 	where TFact : notnull
 {
 	protected abstract TKey GetKey(TRollup rollup);
@@ -29,5 +29,5 @@ public abstract class TotalsValidator<TRollup, TKey, TFact>
 
 	protected abstract Task<IEnumerable<TRollup>> QueryRollupAsync(IDbConnection connection);
 
-	protected abstract Task<IEnumerable<TRollup>> QueryLiveAsync(IDbConnection connection);	
+	protected abstract Task<IEnumerable<TRollup>> QueryLiveAsync(IDbConnection connection);
 }

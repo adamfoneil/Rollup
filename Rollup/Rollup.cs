@@ -77,7 +77,7 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 	/// in your own Rollup instances -- one for each target table
 	/// </summary>
 	protected abstract class Table<TRollup, TKey> where TKey : notnull
-	{		
+	{
 		/// <summary>
 		/// this should query a CHANGETABLE(changes {tableName}) table function, accepting a @sinceVersion parameter,
 		/// and perform whatever grouping is necessary to derive TRollup
@@ -103,7 +103,7 @@ public abstract class Rollup<TMarker> where TMarker : IMarker
 		public async Task<bool> HasChangesAsync(IDbConnection connection, long sinceVersion) =>
 			(await connection.QueryAsync<int>(
 				$"SELECT 1 FROM CHANGETABLE(changes {SourceTableName}, @sinceVersion) AS [c]",
-				new { sinceVersion })).Any();		
+				new { sinceVersion })).Any();
 
 		public async Task<int> MergeAsync(IDbConnection connection, long sinceVersion)
 		{

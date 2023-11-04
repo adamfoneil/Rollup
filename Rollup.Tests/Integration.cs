@@ -2,7 +2,6 @@ using Bogus;
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Rollup.Tests.Entities;
-using RollupLibrary;
 using RollupLibrary.Extensions;
 using System.Data;
 
