@@ -64,3 +64,8 @@ GROUP BY
   [dim].[ItemType],
   [dim].[Year]
 ```
+
+# Troubleshooting
+When I deployed my Rollup solution in a production app, I ran into discrepancies between my rollup reporting data and a separate report meant to validate the rollup data. This is something I'm in the middle of working through at the moment. To that end, I've added a some classes to help with debugging:
+- [TotalsValidator](https://github.com/adamfoneil/Rollup/blob/master/Rollup/TotalsValidator.cs) used for asserting that rollup totals match a "live" query source. See my [SampleValidator](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/SampleValidator.cs) and its [test use](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Integration.cs#L73-L75).
+- [MismatchFinder](https://github.com/adamfoneil/Rollup/blob/master/Rollup/MismatchFinder.cs) used for finding mismtatched detail rows between a rollup data source and "live" query. See [SampleMismatchFinder](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Mismatches.cs#L32) along with its [test](https://github.com/adamfoneil/Rollup/blob/master/Rollup.Tests/Mismatches.cs#L10)
