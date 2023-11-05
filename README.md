@@ -64,6 +64,119 @@ GROUP BY
   [dim].[ItemType],
   [dim].[Year]
 ```
+# Deletions
+The approach I've outlined so far doesn't handle deletions. The problem is that although the CHANGETABLE function will include deletions in its results, a join to your fact table won't return any rows -- precisely because those fact rows have been deleted! In the example above, this refers to this part of the query:
+
+```sql
+-- returns inserts and updates only (not deletions)
+CHANGETABLE(changes [dbo].[DetailSalesRow], @sinceVersion) [c]
+INNER JOIN [dbo].[DetailSalesRow] [s] ON [c].[Id]=[s].[Id]
+```
+
+To address this, I recommend this:
+- In your rollup table(s) add an `IsModified` bit column. (Call it whatever you like, but it should be a `bit` and not part of the key.)
+- Create a delete trigger on your fact table that sets `IsModified = 1` for impacted dimensions. It's sort of a shame that the the point of Change Tracking was to avoid managing your own triggers, but I don't know a better way here.
+- In your rollup changes query (implemented by `Table.QueryChangesAsync`), add a `UNION` to a query that checks for rollup rows where `IsModified = 1`. That way dimensions affected by a deletion will be included in the rollup merge.
+
+Here's an example from an application where I implemented this:
+
+<details>
+  <summary>Delete trigger on fact table</summary>
+
+```sql
+ALTER TRIGGER [dbo].[TR_Transaction_Delete] ON [dbo].[Transaction]
+FOR DELETE
+AS
+UPDATE [rev] SET
+    [IsModified]=1
+FROM
+    [deleted] [del]
+    LEFT JOIN [dbo].[VolumeClient] [vc] ON [del].[ClientId] = [vc].[ClientId]
+    INNER JOIN [report].[Revenue] [rev] ON 
+        [del].[ClinicId] = [rev].[ClinicId] AND
+        [del].[Date] = [rev].[Date] AND
+        CASE WHEN [vc].[Id] IS NULL THEN 0 ELSE 1 END = [rev].[ClientType]
+```
+
+</details>
+
+<details>
+  <summary>QueryChangesAsync query</summary>
+  
+  ```sql
+-- this top query picks up inserts and updates
+WITH [dimensions] AS (
+    SELECT
+        [txn].[ClinicId],
+        [txn].[Date],
+        CASE WHEN [vc].[Id] IS NOT NULL THEN 1 ELSE 0 END AS [ClientType]
+    FROM
+        CHANGETABLE(changes [dbo].[Transaction], @sinceVersion) [c]
+        INNER JOIN [dbo].[Transaction] [txn] ON [c].[Id] = [txn].[Id]
+        LEFT JOIN [dbo].[VolumeClient] [vc] ON [txn].[ClientId] = [vc].[ClientId]
+        INNER JOIN [app].[TransactionType] [tt] ON [txn].[TypeId] = [tt].[Id]
+    WHERE
+        [tt].[DepositMultiplier]<>0
+    GROUP BY
+        [txn].[ClinicId],
+        [txn].[Date],
+        CASE WHEN [vc].[Id] IS NOT NULL THEN 1 ELSE 0 END
+) SELECT
+    [dims].[ClinicId],
+    [dims].[Date],
+    [dims].[ClientType],
+    SUM([txn].[Amount]*[tt].[DepositMultiplier]) AS [Amount]
+FROM
+    [dbo].[Transaction] [txn]
+    LEFT JOIN [dbo].[VolumeClient] [vc] ON [txn].[ClientId] = [vc].[ClientId]
+    INNER JOIN [app].[TransactionType] [tt] ON [txn].[TypeId] = [tt].[Id]
+    INNER JOIN [dimensions] [dims] ON            
+        [dims].[ClinicId] = [txn].[ClinicId] AND
+        [dims].[Date] = [txn].[Date] AND
+        [dims].[ClientType] = CASE WHEN [vc].[Id] IS NOT NULL THEN 1 ELSE 0 END
+WHERE
+    [tt].[DepositMultiplier]<>0
+GROUP BY
+    [dims].[ClinicId],
+    [dims].[Date],
+    [dims].[ClientType]
+
+UNION
+
+-- this query picks up deletions
+SELECT
+    [rev].[ClinicId],
+    [rev].[Date],
+    [rev].[ClientType],	
+    COALESCE([t].[NetAmount], 0) AS [Amount]
+FROM
+    [report].[Revenue] [rev]
+    LEFT JOIN (
+        SELECT
+            [txn].[ClinicId],
+            [txn].[Date],
+            CASE WHEN [vc].[Id] IS NOT NULL THEN 1 ELSE 0 END AS [ClientType],
+            SUM([txn].[Amount]*[tt].[DepositMultiplier]) AS [NetAmount]
+        FROM
+            [dbo].[Transaction] [txn]
+            INNER JOIN [app].[TransactionType] [tt] ON [txn].[TypeId]=[tt].[Id]
+            LEFT JOIN [dbo].[VolumeClient] [vc] ON [txn].[ClientId]=[vc].[ClientId]
+        WHERE
+            [tt].[DepositMultiplier]<>0
+        GROUP BY
+            [txn].[ClinicId],
+            [txn].[Date],
+            CASE WHEN [vc].[Id] IS NOT NULL THEN 1 ELSE 0 END
+    ) [t] ON
+        [rev].[ClinicId]=[t].[ClinicId] AND
+        [rev].[ClientType]=[t].[ClientType] AND
+        [rev].[Date]=[t].[Date]
+WHERE
+    [rev].[IsModified]=1
+```
+
+</details>
+
 
 # Troubleshooting
 When I deployed my Rollup solution in a production app, I ran into discrepancies between my rollup reporting data and a separate report meant to validate the rollup data. This is something I'm in the middle of working through at the moment. To that end, I've added a some classes to help with debugging:
