@@ -24,17 +24,19 @@ public abstract class MismatchFinder<TResult, TIdentity>
 
 	protected abstract Task<IEnumerable<TResult>> QueryRollupAsync(IDbConnection connection);
 
-	public async Task<Result> QueryAsync(IDbConnection connection)
+	public async Task<Result> QueryAsync(IDbConnection connection, Action<Dictionary<TIdentity, TResult>, Dictionary<TIdentity, TResult>>? inspect = null)
 	{
-		List<(MismatchType, TResult)> dimensions = new();
+		List<(MismatchType, TResult)> mismatchedDimensions = new();
 
 		var transactionalDetail = (await QueryTransactionalAsync(connection)).ToDictionary(GetIdentity);
 		var rollupDetail = (await QueryRollupAsync(connection)).ToDictionary(GetIdentity);
 
-		dimensions.AddRange(transactionalDetail.Keys.Except(rollupDetail.Keys).Select(id => (MismatchType.NotInRollup, transactionalDetail[id])));
-		dimensions.AddRange(rollupDetail.Keys.Except(transactionalDetail.Keys).Select(id => (MismatchType.NotInTransactional, rollupDetail[id])));
+		inspect?.Invoke(transactionalDetail, rollupDetail);
 
-		var facts = transactionalDetail.Keys.Join(rollupDetail.Keys, id => id, id => id, (leftId, rightId) => new
+		mismatchedDimensions.AddRange(transactionalDetail.Keys.Except(rollupDetail.Keys).Select(id => (MismatchType.NotInRollup, transactionalDetail[id])));
+		mismatchedDimensions.AddRange(rollupDetail.Keys.Except(transactionalDetail.Keys).Select(id => (MismatchType.NotInTransactional, rollupDetail[id])));
+
+		var mismatchedFacts = transactionalDetail.Keys.Join(rollupDetail.Keys, id => id, id => id, (leftId, rightId) => new
 		{
 			TransactionValue = transactionalDetail[leftId],
 			RollupValue = rollupDetail[rightId]
@@ -44,8 +46,8 @@ public abstract class MismatchFinder<TResult, TIdentity>
 
 		return new Result()
 		{
-			Dimensions = dimensions,
-			Facts = facts
+			Dimensions = mismatchedDimensions,
+			Facts = mismatchedFacts
 		};
 	}
 
