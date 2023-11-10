@@ -17,9 +17,13 @@ public class Mismatches
 		var finder = new SampleMismatchFinder();
 		var result = await finder.QueryAsync(cn);
 
-		Assert.IsTrue(result.Count() == 2);
-		Assert.IsTrue(result.Any(item => item.Type == MismatchType.NotInRollup && item.Data.Id == 6 && item.Data.Value == "Grouper"));
-		Assert.IsTrue(result.Any(item => item.Type == MismatchType.NotInTransactional && item.Data.Id == 3 && item.Data.Value == "Whatever"));
+		Assert.IsTrue(result.Dimensions.Count() == 2);
+		Assert.IsTrue(result.Dimensions.Any(item => item.Type == MismatchType.NotInRollup && item.Data.Id == 6 && item.Data.Value == "Grouper"));
+		Assert.IsTrue(result.Dimensions.Any(item => item.Type == MismatchType.NotInTransactional && item.Data.Id == 3 && item.Data.Value == "Whatever"));
+
+		Assert.IsTrue(result.Facts.Count() == 1);
+		Assert.IsTrue(result.Facts.First().TransactionalRow.Amount == 2);
+		Assert.IsTrue(result.Facts.First().RollupRow.Amount == 1);
 	}
 }
 
@@ -27,11 +31,14 @@ internal class SampleData
 {
 	public int Id { get; set; }
 	public string Value { get; set; } = default!;
+	public decimal Amount { get; set; }
 }
 
 internal class SampleMismatchFinder : MismatchFinder<SampleData, int>
 {
 	protected override int GetIdentity(SampleData result) => result.Id;
+
+	protected override bool FactsAreEqual(SampleData transactional, SampleData rollup) => transactional.Amount == rollup.Amount;	
 
 	protected override async Task<IEnumerable<SampleData>> QueryRollupAsync(IDbConnection connection)
 	{
@@ -39,11 +46,11 @@ internal class SampleMismatchFinder : MismatchFinder<SampleData, int>
 
 		return new SampleData[]
 		{
-			new() { Id = 1, Value = "Hello" },
-			new() { Id = 2, Value = "Goodbye" },
-			new() { Id = 3, Value = "Whatever" },
-			new() { Id = 4, Value = "Astyanax" },
-			new() { Id = 5, Value = "Ozymandias" },
+			new() { Id = 1, Value = "Hello", Amount = 1 },
+			new() { Id = 2, Value = "Goodbye", Amount = 1 },
+			new() { Id = 3, Value = "Whatever", Amount = 1 },
+			new() { Id = 4, Value = "Astyanax", Amount = 1 },
+			new() { Id = 5, Value = "Ozymandias", Amount = 1 },
 		};
 	}
 
@@ -53,10 +60,10 @@ internal class SampleMismatchFinder : MismatchFinder<SampleData, int>
 
 		return new SampleData[]
 		{
-			new() { Id = 1, Value = "Hello" },
-			new() { Id = 2, Value = "Goodbye" },
-			new() { Id = 4, Value = "Astyanax" },
-			new() { Id = 5, Value = "Ozymandias" },
+			new() { Id = 1, Value = "Hello", Amount = 1 },
+			new() { Id = 2, Value = "Goodbye", Amount = 1 },
+			new() { Id = 4, Value = "Astyanax", Amount = 1 },
+			new() { Id = 5, Value = "Ozymandias", Amount = 2 },
 			new() { Id = 6, Value = "Grouper" }
 		};
 	}
