@@ -1,3 +1,10 @@
+Update 11/13/23
+After a little bit of production use, I've figured out that [Change Tracking](https://learn.microsoft.com/en-us/sql/relational-databases/track-changes/about-change-tracking-sql-server?view=sql-server-ver16) is not the best approach to this problem. [Change Data Capture](https://learn.microsoft.com/en-us/sql/relational-databases/track-changes/about-change-data-capture-sql-server?view=sql-server-ver16) better fits the rollup problem. So, I won't be updating this going forward. There are few things I like about this library however:
+- [InsertManyAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Extensions/DbConnectionExtensions.cs#L30) and [DeleteManyAsync](https://github.com/adamfoneil/Rollup/blob/master/Rollup/Extensions/DbConnectionExtensions.cs#L12) extension methods
+- [MismatchFinder](https://github.com/adamfoneil/Rollup/blob/master/Rollup/MismatchFinder.cs) for inspecting two query result sets to find differences.
+
+---
+
 # Problem Statement
 Imagine you have one or more reporting tables in SQL Server that need to be incrementally updated as changes happen elsehwere in your application. These reporting tables might have calculations that are too slow to generate on demand. You need a way to keep your reporting tables updated reliably. SQL Server [change tracking](https://learn.microsoft.com/en-us/sql/relational-databases/track-changes/about-change-tracking-sql-server?view=sql-server-ver16) is a good way to do this, but it's a complex feature with several moving pieces. It would be nice to have a C# interface that encapsulates as much of the details as possible, letting me focus on the results.
 
